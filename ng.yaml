@@ -49,12 +49,15 @@ spec:
         - containerPort:  80
           name:  my-nginx
         volumeMounts:
-        - mountPath: /data
+        - mountPath: /usr/share/nginx/html/
           name: data
       initContainers:
       - name: init-config
         image: busybox
         command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/
+          name: data
       volumes:
         - name: data
           emptyDir: {}
