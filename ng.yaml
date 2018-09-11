@@ -5,13 +5,10 @@ metadata:
   labels:
     name:  my-nginx
 spec:
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-    type: RollingUpdate
   template:
     metadata:
+      annotations:
+        tke.cloud.tencent.com/vpc-eni-cni-ip: "true"
       labels:
         name:  my-nginx
     spec:
@@ -25,41 +22,21 @@ spec:
           limits:
             cpu: "1"
             memory: "1024M"
-        livenessProbe:
-          httpGet:
-            path: /_status/healthz
-            port: 5000
-          initialDelaySeconds: 90
-          timeoutSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /_status/healthz
-            port: 5000
-          initialDelaySeconds: 30
-          timeoutSeconds: 10
         lifecycle:
           preStop:
             exec:
               # nginx -s quit gracefully terminate while SIGTERM triggers a quick exit
-              command: ["/usr/local/openresty/nginx/sbin/nginx","-s","quit"]
-        env:
-        - name:  config
-          value:  config       
-        ports:
-        - containerPort:  80
-          name:  my-nginx
+              command: ["nginx","-s","quit"]
         volumeMounts:
         - mountPath: /usr/share/nginx/html/
           name: data
       initContainers:
       - name: init-config
         image: busybox
-        command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
+        command: ['sh', '-c', 'wget https://raw.githubusercontent.com/Kevin-Qiu/config-init/master/config.sh;chmod 777 config.sh;./config.sh']
         volumeMounts:
         - mountPath: /usr/share/nginx/html/
           name: data
       volumes:
         - name: data
           emptyDir: {}
-      restartPolicy: Always
-      imagePullPolicy: Always
