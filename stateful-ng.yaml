@@ -1,0 +1,37 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  annotations:
+    tke.cloud.tencent.com/enable-static-ip: "true"
+  name: stateful-nginx
+spec:
+  serviceName: "stateful-nginx"
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        tke.cloud.tencent.com/vpc-eni-cni-ip: "true"
+      labels:
+        app: stateful-nginx
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: stateful-nginx
+        image: nginx:alpine
+        lifecycle:
+          preStop:
+            exec:
+              command: ["nginx","-s","quit"]
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/
+          name: data
+      initContainers:
+      - name: stateful-init-config
+        image: busybox
+        command: ['sh', '-c', 'wget https://raw.githubusercontent.com/Kevin-Qiu/config-init/master/config.sh;chmod 777 config.sh;./config.sh']
+        volumeMounts:
+        - mountPath: /usr/share/nginx/html/
+          name: data
+      volumes:
+        - name: data
+          emptyDir: {}
